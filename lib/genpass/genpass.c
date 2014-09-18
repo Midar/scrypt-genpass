@@ -30,6 +30,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,7 +50,7 @@
 static int pickparams(uint32_t, uint32_t,
     int *, uint32_t *, uint32_t *);
 static int checkparams(uint32_t, uint32_t, int, uint32_t, uint32_t);
-static int getsalt(uint8_t[32], char* site);
+static int getsalt(uint8_t[32], char* site, bool verbose);
 
 static int
 pickparams(uint32_t maxmem, uint32_t megaops,
@@ -151,7 +152,7 @@ bintohex(char* outstring, size_t nbytes, uint8_t* data)
   return 0;
 }
 
-int
+void
 sha256string(uint8_t hash[32], uint8_t* s, int n)
 {
   SHA256_CTX sha256_ctx;
@@ -161,19 +162,19 @@ sha256string(uint8_t hash[32], uint8_t* s, int n)
 }
 
 static int
-getsalt(uint8_t salt[32], char* site)
+getsalt(uint8_t salt[32], char* site, bool verbose)
 {
   sha256string(salt, (uint8_t*) site, strlen(site));
-  char buf[65];
-  bintohex(buf, 32, salt);
-  printf("Site hex: %s\n", buf);
+  if (verbose) {
+    char buf[65];
+    bintohex(buf, 32, salt);
+    printf("Site hex: %s\n", buf);
+  }
   return (0);
 }
 
 int
-genpass(uint8_t dk[64],
-    const uint8_t * passwd, size_t passwdlen, char* site,
-    uint32_t maxmem, uint32_t megaops)
+genpass(uint8_t dk[64], sg_parms_t *sg_parms)
 {
   uint8_t salt[32];
   uint8_t hbuf[32];
@@ -187,17 +188,18 @@ genpass(uint8_t dk[64],
   int rc;
 
   /* Pick values for N, r, p. */
-  if ((rc = pickparams(maxmem, megaops,
+  if ((rc = pickparams(sg_parms->maxmem, sg_parms->megaops,
       &logN, &r, &p)) != 0)
     return (rc);
   N = (uint64_t)(1) << logN;
 
   /* Get some salt using the site. */
-  if ((rc = getsalt(salt, site)) != 0)
+  if ((rc = getsalt(salt, sg_parms->site, sg_parms->verbose)) != 0)
     return (rc);
 
   /* Generate the derived keys. */
-  if (crypto_scrypt(passwd, passwdlen, salt, 32, N, r, p, dk, 64))
+  if (crypto_scrypt(sg_parms->passwd, sg_parms->passwdlen, salt, 32, N, r, p,
+   dk, 64))
     return (3);
 
   /* Success! */

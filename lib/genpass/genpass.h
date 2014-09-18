@@ -29,6 +29,7 @@
 #ifndef _GENPASS_H_
 #define _GENPASS_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -73,11 +74,7 @@
  */
 int bintohex(char* outstring, size_t nbytes, uint8_t* data);
 
-int sha256string(uint8_t* hash, uint8_t* s, int n);
-
-int genpass(uint8_t dk[64],
-    const uint8_t * passwd, size_t passwdlen, char* site,
-    uint32_t maxmem, uint32_t megaops);
+void sha256string(uint8_t* hash, uint8_t* s, int n);
 
 typedef struct {
   char* keyfile;
@@ -88,7 +85,9 @@ typedef struct {
   uint8_t* passwd;
   size_t passwdlen;
   char* site;
-  int verbose;
+  bool verbose;
 } sg_parms_t, *sg_parms_ptr;
+
+int genpass(uint8_t dk[64], sg_parms_t *sg_parms);
 
 #endif /* !_GENPASS_H_ */

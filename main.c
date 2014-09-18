@@ -102,7 +102,7 @@ main(int argc, char *argv[])
 
   init_parms(&sg_parms);
   /* Parse arguments. */
-  while ((ch = getopt(argc, argv, "htk:l:m:no:p:")) != -1) {
+  while ((ch = getopt(argc, argv, "htk:l:m:no:p:v")) != -1) {
     switch (ch) {
     case 'k':
       sg_parms.keyfile = strdup(optarg);
@@ -181,24 +181,28 @@ main(int argc, char *argv[])
 
   uint8_t passhash[32];
   sha256string(passhash, sg_parms.passwd, sg_parms.passwdlen);
-  char buf1[65];
-  bintohex(buf1, 32, passhash);
-  printf("Master hex: %s\n", buf1);
-  memset(buf1, 0, 65);
+  if (sg_parms.verbose) {
+    char buf1[65];
+    bintohex(buf1, 32, passhash);
+    printf("Master hex: %s\n", buf1);
+    memset(buf1, 0, 65);
+  }
 
   uint8_t dk[64];
-  rc = genpass(dk, (uint8_t *)sg_parms.passwd, sg_parms.passwdlen, (void*) *argv,
-    sg_parms.maxmem, sg_parms.megaops);
+  sg_parms.site = *argv;
+  rc = genpass(dk, &sg_parms);
 
   /* Zero and free the password. */
   memset(sg_parms.passwd, 0, sg_parms.passwdlen);
   free(sg_parms.passwd);
   free(sg_parms.keyfile);
 
-  char buf[129];
-  bintohex(buf, 64, dk);
-  printf("Pass hex: %s\n", buf);
-  memset(buf, 0, 129);
+  if (sg_parms.verbose) {
+    char buf[129];
+    bintohex(buf, 64, dk);
+    printf("Pass hex: %s\n", buf);
+    memset(buf, 0, 129);
+  }
 
   if ((sg_parms.outputlength < 3)||(sg_parms.outputlength > 64)) {
     warn("Unable to generate password for output length %lu", sg_parms.outputlength);
@@ -207,7 +211,7 @@ main(int argc, char *argv[])
 
   char output[sg_parms.outputlength + 1];
   hashtopass(sg_parms.numbers_only, output, sg_parms.outputlength, dk);
-  printf("Generated password: %s\n", output);
+  printf((sg_parms.verbose ? "Generated password: %s\n" : "%s\n"), output);
   memset(output, 0, sg_parms.outputlength + 1);
 
   /* If we failed, print the right error message and exit. */
