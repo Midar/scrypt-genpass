@@ -43,7 +43,7 @@ usage(void)
   fprintf(stderr,
       "Usage: scrypt-genpass [-l LEN] [-m MAXMEM] [-n] [-o MAXOPS] [-k KEYFILE]\n");
   fprintf(stderr,
-      "                      [-p PASS] <site>\n");
+      "                      [-p PASS] [-r] [-v] <site>\n");
   fprintf(stderr,
       "       scrypt-genpass -t\n");
   fprintf(stderr,
@@ -92,6 +92,7 @@ main(int argc, char *argv[])
 
   char ch;
   int rc;
+  bool repeat = false;
 
 #ifdef NEED_WARN_PROGNAME
   warn_progname = "scrypt-genpass";
@@ -102,7 +103,7 @@ main(int argc, char *argv[])
 
   init_parms(&sg_parms);
   /* Parse arguments. */
-  while ((ch = getopt(argc, argv, "htk:l:m:no:p:v")) != -1) {
+  while ((ch = getopt(argc, argv, "htk:l:m:no:p:rv")) != -1) {
     switch (ch) {
     case 'k':
       sg_parms.keyfile = strdup(optarg);
@@ -125,6 +126,9 @@ main(int argc, char *argv[])
     case 't':
       unit_tests();
       break;
+    case 'r':
+      repeat = true;
+      break;
     case 'v':
       sg_parms.verbose = 1;
       break;
@@ -142,7 +146,7 @@ main(int argc, char *argv[])
   if (!sg_parms.passwd) {
     /* Prompt for a password. */
     if (tarsnap_readpass((char**)&(sg_parms.passwd), "Please enter passphrase",
-        "Please confirm passphrase", 1))
+        (repeat ? "Please repeat passphrase" : NULL), 1))
       exit(1);
   }
   sg_parms.passwdlen = strlen(sg_parms.passwd);
